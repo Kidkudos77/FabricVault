@@ -1,4 +1,23 @@
 import { p256 } from "@noble/curves/p256"
+import browser from "webextension-polyfill"
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa"
+
+// Dilithium3 key storage keys
+const DILITHIUM_PRIVATE_KEY = "certchain_dilithium3_private"
+const DILITHIUM_PUBLIC_KEY  = "certchain_dilithium3_public"
+
+// Helper: convert hex string to Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const arr = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < hex.length; i += 2)
+    arr[i / 2] = parseInt(hex.slice(i, i + 2), 16)
+  return arr
+}
+
+// Helper: convert Uint8Array to hex string
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("")
+}
 
 export class CryptoManager {
   private key: CryptoKey | null = null
@@ -132,4 +151,74 @@ export class CryptoManager {
     const derSig = signature.toDERRawBytes()
     return btoa(String.fromCharCode(...derSig))
   }
+
+  // ── CRYSTALS-Dilithium3 (ML-DSA-65) Post-Quantum Signing ──────────────────
+  // NIST FIPS 204 / ML-DSA standard
+  // Used for credential artifact signing — separate from Fabric ECDSA layer
+
+  async generateDilithiumKeypair(): Promise<{ publicKey: string; privateKey: string }> {
+    const seed = crypto.getRandomValues(new Uint8Array(32))
+    const { secretKey, publicKey } = ml_dsa65.keygen(seed)
+    const pub = bytesToHex(publicKey)
+    const priv = bytesToHex(secretKey)
+    // Store in extension local storage
+    await browser.storage.local.set({
+      [DILITHIUM_PUBLIC_KEY]: pub,
+      [DILITHIUM_PRIVATE_KEY]: priv
+    })
+    return { publicKey: pub, privateKey: priv }
+  }
+
+  async getDilithiumPublicKey(): Promise<string | null> {
+    const result = await browser.storage.local.get(DILITHIUM_PUBLIC_KEY)
+    return result[DILITHIUM_PUBLIC_KEY] ?? null
+  }
+
+  async signWithDilithium3(
+    credentialJson: string
+  ): Promise<{ signature: string; publicKey: string; algorithm: string }> {
+    // Retrieve stored private key
+    const stored = await browser.storage.local.get([
+      DILITHIUM_PRIVATE_KEY,
+      DILITHIUM_PUBLIC_KEY
+    ])
+    let privHex: string = stored[DILITHIUM_PRIVATE_KEY]
+    let pubHex: string  = stored[DILITHIUM_PUBLIC_KEY]
+
+    // Auto-generate keypair if not yet created
+    if (!privHex || !pubHex) {
+      const kp = await this.generateDilithiumKeypair()
+      privHex = kp.privateKey
+      pubHex  = kp.publicKey
+    }
+
+    const privKey = hexToBytes(privHex)
+    const pubKey  = hexToBytes(pubHex)
+
+    // Sign the credential JSON bytes
+    const msgBytes = new TextEncoder().encode(credentialJson)
+    const signature = ml_dsa65.sign(privKey, msgBytes)
+
+    return {
+      signature:  bytesToHex(signature),
+      publicKey:  pubHex,
+      algorithm:  "CRYSTALS-Dilithium3 (NIST FIPS 204 / ML-DSA-65)"
+    }
+  }
+
+  async verifyDilithium3(
+    credentialJson: string,
+    signatureHex: string,
+    publicKeyHex: string
+  ): Promise<boolean> {
+    try {
+      const pubKey    = hexToBytes(publicKeyHex)
+      const sigBytes  = hexToBytes(signatureHex)
+      const msgBytes  = new TextEncoder().encode(credentialJson)
+      return ml_dsa65.verify(pubKey, msgBytes, sigBytes)
+    } catch {
+      return false
+    }
+  }
+
 }

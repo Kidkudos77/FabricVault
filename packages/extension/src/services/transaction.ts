@@ -3,6 +3,9 @@ import type { Peer } from "~contexts/peer"
 import type { RequestData } from "~contexts/request"
 
 import { handleSignRequest } from "./wallet"
+import { CryptoManager } from "~lib/crypto"
+
+const cryptoManager = new CryptoManager()
 
 export async function handleSendRequest(
   peer: Peer,
@@ -13,7 +16,22 @@ export async function handleSendRequest(
     const ws = new WebSocket(peer.rpcUrl)
     const requestId = Math.random().toString(36).substring(2)
 
-    ws.onopen = () => {
+    ws.onopen = async () => {
+      // Attach Dilithium3 signature to credential payload if present
+      const params = request.payload.params || {}
+      let pqSignature: { signature: string; publicKey: string; algorithm: string } | null = null
+      if (params.credentialJson) {
+        try {
+          pqSignature = await cryptoManager.signWithDilithium3(
+            typeof params.credentialJson === "string"
+              ? params.credentialJson
+              : JSON.stringify(params.credentialJson)
+          )
+        } catch (e) {
+          console.warn("Dilithium3 signing failed, proceeding without PQ signature:", e)
+        }
+      }
+
       ws.send(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -28,7 +46,9 @@ export async function handleSendRequest(
               endpoint: peer.endpoint,
               tlsRootCert: peer.tlsRootCert
             },
-            ...(request.payload.params || {})
+            ...params,
+            // Attach PQ signature if credential signing was requested
+            ...(pqSignature ? { pqSignature } : {})
           },
           id: requestId
         })
