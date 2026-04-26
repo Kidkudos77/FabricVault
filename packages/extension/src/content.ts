@@ -1,7 +1,5 @@
 import browser from "webextension-polyfill"
 
-}
-
 function injectScript() {
   const script = document.createElement("script")
   script.src = chrome.runtime.getURL("injected.js")

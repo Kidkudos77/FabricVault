@@ -5,14 +5,7 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-  }) : x)(function(x) {
-    if (typeof require !== "undefined")
-      return require.apply(this, arguments);
-    throw Error('Dynamic require of "' + x + '" is not supported');
-  });
-  var __commonJS = (cb, mod) => function __require2() {
+  var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
   var __copyProps = (to, from, except, desc) => {
@@ -1024,15 +1017,9 @@
 
   // packages/extension/src/content.ts
   var import_webextension_polyfill = __toESM(require_browser_polyfill());
-  var import_injected = __toESM(__require("url:~src/injected"));
-  var config = {
-    matches: ["<all_urls>"],
-    all_frames: true,
-    run_at: "document_start"
-  };
   function injectScript() {
     const script = document.createElement("script");
-    script.src = import_injected.default;
+    script.src = chrome.runtime.getURL("injected.js");
     script.type = "text/javascript";
     script.onload = () => {
       script.remove();
