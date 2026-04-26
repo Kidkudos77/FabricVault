@@ -1,6 +1,6 @@
 import { p256 } from "@noble/curves/p256"
 import browser from "webextension-polyfill"
-import { ml_dsa65 } from "@noble/post-quantum/ml-dsa"
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js"
 
 // Dilithium3 key storage keys
 const DILITHIUM_PRIVATE_KEY = "certchain_dilithium3_private"
