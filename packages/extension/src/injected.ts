@@ -1,4 +1,4 @@
-import fabricVaultIconUrl from "data-base64:assets/icon.png"
+const fabricVaultIconUrl = ""  // icon injected at runtime
 
 window.fabric = {
   request: (payload) => {
