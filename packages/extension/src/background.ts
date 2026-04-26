@@ -77,6 +77,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           'certchain_dilithium3_private',
           'certchain_dilithium3_public'
         ])
+        if (stored.certchain_dilithium3_private === undefined) {
           sendResponse({ success: false, error: 'No keypair found. Generate one first.' })
           return
         }
