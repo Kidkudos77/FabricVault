@@ -1,19 +1,28 @@
 {
   "manifest_version": 3,
-  "name": "FabricVault — CertChain Wallet",
+  "name": "FabricVault \u2014 CertChain Wallet",
   "version": "1.0.0",
   "description": "Hyperledger Fabric identity wallet with CRYSTALS-Dilithium3 post-quantum signing for CertChain",
-  "permissions": ["storage", "tabs", "activeTab"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "run_at": "document_start",
-    "all_frames": true
-  }],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
@@ -23,8 +32,14 @@
     "48": "icon.png",
     "128": "icon.png"
   },
-  "web_accessible_resources": [{
-    "resources": ["injected.js"],
-    "matches": ["<all_urls>"]
-  }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "injected.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }
